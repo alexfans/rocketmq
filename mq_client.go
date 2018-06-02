@@ -459,7 +459,7 @@ func (m *MqClient) prepareHeartbeatData() *HeartbeatData {
 		consumerData.GroupName = group
 		consumerData.ConsumerType = consumer.consumerType
 		consumerData.ConsumeFromWhere = consumer.consumeFromWhere
-		consumerData.MessageModel = consumer.messageModel
+		consumerData.MessageModel = consumer.messageModel.String()
 		consumerData.SubscriptionDataSet = consumer.subscriptions()
 		consumerData.UnitMode = consumer.unitMode
 

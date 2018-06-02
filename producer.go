@@ -389,7 +389,7 @@ func (d *DefaultProducer) sendMessage(addr string, brokerName string, msg *Messa
 
 func (d *DefaultProducer) sendMessageSync(addr string, brokerName string, msg *Message, timeoutMillis int64, remotingCommand *RemotingCommand) (sendResult *SendResult, err error) {
 	var response *RemotingCommand
-	fmt.Fprintln(os.Stderr, "msg:", msg.Topic, msg.Flag, string(msg.Body), msg.GetProperties())
+	fmt.Fprintln(os.Stderr, "msg:", msg.Topic, msg.Flag, string(msg.Body), messageProperties2String(msg.GetProperties()))
 	if response, err = d.remotingClient.invokeSync(addr, remotingCommand, timeoutMillis); err != nil {
 		fmt.Fprintln(os.Stderr, "sendMessageSync err", err)
 	}

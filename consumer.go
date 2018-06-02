@@ -17,6 +17,17 @@ const (
 	FlagClassFilter            int32 = 0x1 << 3
 )
 
+type _MessageModel string
+
+func (mm _MessageModel) String() string {
+	return string(mm)
+}
+
+const (
+	BROADCASTING _MessageModel = "BROADCASTING"
+	CLUSTERING   _MessageModel = "CLUSTERING"
+)
+
 type MessageListener func(msgs []*MessageExt) error
 
 var DefaultIp = GetLocalIp4()
@@ -43,7 +54,7 @@ type DefaultConsumer struct {
 	consumerGroup    string
 	consumeFromWhere string
 	consumerType     string
-	messageModel     string
+	messageModel     _MessageModel
 	unitMode         bool
 	subscription     map[string]string
 	messageListener  MessageListener
@@ -102,6 +113,10 @@ func NewDefaultConsumer(consumerGroup string, conf *Config) (Consumer, error) {
 	pullMessageService.service = consumer
 
 	return consumer, nil
+}
+
+func (c *DefaultConsumer) SetMessageModel(mm _MessageModel) {
+	c.messageModel = mm
 }
 
 func (c *DefaultConsumer) Start() error {
