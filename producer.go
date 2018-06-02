@@ -33,7 +33,7 @@ const (
 	StartFailed
 )
 
-type SendCallback func() error
+type SendCallback func(sendResult *SendResult) error
 
 type DefaultProducer struct {
 	conf                             *Config
@@ -413,15 +413,16 @@ func (d *DefaultProducer) sendMessageAsync(addr string, brokerName string, msg *
 			return
 		}
 
-		sendCallback()
 		if responseCommand != nil {
 			if sendResult, err = d.processSendResponse(brokerName, msg, responseCommand); sendResult == nil || err != nil {
 				fmt.Fprintln(os.Stderr, "sendResult can't be null, error ", err)
+				sendCallback(sendResult)
 				producer.updateFaultItem(brokerName, time.Now().Unix()-responseFuture.beginTimestamp, true)
 				return
 			} else {
 				if context != nil {
 					context.sendResult = sendResult
+
 					// TODO add send hook
 					producer.updateFaultItem(brokerName, time.Now().Unix()-responseFuture.beginTimestamp, false)
 				}
