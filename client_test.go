@@ -13,10 +13,11 @@ var ch = make(chan *RemotingCommand)
 var client = NewDefaultRemotingClient()
 
 func TestConnect(t *testing.T) {
+	return
 	log.SetFlags(log.Lshortfile | log.LstdFlags)
 
-	broker := "192.168.1.197:10911"
-	namesrv := "192.168.1.234:9876"
+	broker := "192.168.2.91:10911"
+	namesrv := "192.168.2.91:9876"
 
 	data, err := ioutil.ReadFile("request.txt")
 	if err != nil {

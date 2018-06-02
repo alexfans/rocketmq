@@ -8,8 +8,8 @@ import (
 var producerGroup = "dev-goProducerConsumerTest"
 var topic = "goProducerConsumerTest"
 var conf = &Config{
-	Namesrv:      "192.168.7.101:9876;192.168.7.102:9876;192.168.7.103:9876",
-	ClientIp:     "192.168.23.137",
+	Namesrv:      "192.168.2.91:9876;192.168.2.92:9876",
+	ClientIp:     GetLocalIp4(),
 	InstanceName: "DEFAULT_tt",
 }
 
@@ -65,7 +65,7 @@ func TestSendAsync(t *testing.T) {
 	}
 	for i := 0; i < 3; i++ {
 		msg := NewMessage(topic, []byte("Hello RocketMQ "+strconv.Itoa(i)))
-		sendCallback := func() error {
+		sendCallback := func(sendResult *SendResult) error {
 			t.Logf("I am callback")
 			return nil
 		}

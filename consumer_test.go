@@ -9,8 +9,8 @@ var consumerGroup = "dev-goProducerConsumerTest"
 var consumerTopic = "goProducerConsumerTest"
 var sleep = 60 * time.Second
 var consumerConf = &Config{
-	Namesrv:      "192.168.7.101:9876;192.168.7.102:9876;192.168.7.103:9876",
-	ClientIp:     "192.168.23.137",
+	Namesrv:      "192.168.2.91:9876;192.168.2.92:9876",
+	ClientIp:     GetLocalIp4(),
 	InstanceName: "DEFAULT_tt",
 }
 
