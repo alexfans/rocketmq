@@ -17,6 +17,34 @@ type SendResult struct {
 	regionId      string
 }
 
+func (sr *SendResult) SendStatus() int {
+	return sr.sendStatus
+}
+
+func (sr *SendResult) MsgId() string {
+	return sr.msgId
+}
+
+func (sr *SendResult) MessageQueue() *MessageQueue {
+	return sr.messageQueue
+}
+
+func (sr *SendResult) QueueOffset() int64 {
+	return sr.queueOffset
+}
+
+func (sr *SendResult) TransactionId() string {
+	return sr.transactionId
+}
+
+func (sr *SendResult) OffsetMsgId() string {
+	return sr.offsetMsgId
+}
+
+func (sr *SendResult) RegionId() string {
+	return sr.regionId
+}
+
 func NewSendResult(sendStatus int, msgId string, offsetMsgId string, messageQueue *MessageQueue, queueOffset int64) *SendResult {
 	return &SendResult{
 		sendStatus:   sendStatus,
