@@ -1,8 +1,12 @@
 package rocketmq
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"log"
+	"os"
 	"sync"
 	"sync/atomic"
 )
@@ -14,10 +18,10 @@ const (
 )
 
 type OffsetStore interface {
-	//load() error
+	load() error
 	updateOffset(mq *MessageQueue, offset int64, increaseOnly bool)
 	readOffset(mq *MessageQueue, flag int) int64
-	//persistAll(mqs []MessageQueue)
+	persistAll(mqs []MessageQueue)
 	//persist(mq MessageQueue)
 	//removeOffset(mq MessageQueue)
 	//cloneOffsetTable(topic string) map[MessageQueue]int64
@@ -28,6 +32,10 @@ type RemoteOffsetStore struct {
 	mqClient        *MqClient
 	offsetTable     map[MessageQueue]int64
 	offsetTableLock sync.RWMutex
+}
+
+func (r *RemoteOffsetStore) load() error {
+	return nil
 }
 
 func (r *RemoteOffsetStore) readOffset(mq *MessageQueue, readType int) int64 {
@@ -75,6 +83,10 @@ func (r *RemoteOffsetStore) fetchConsumeOffsetFromBroker(mq *MessageQueue) (int6
 	}
 
 	return 0, errors.New("fetch consumer offset error")
+}
+
+func (r *RemoteOffsetStore) persistAll(mqs []MessageQueue) {
+	return
 }
 
 func (r *RemoteOffsetStore) persist(mq *MessageQueue) {
@@ -141,4 +153,166 @@ func (r *RemoteOffsetStore) updateOffset(mq *MessageQueue, offset int64, increas
 
 	}
 
+}
+
+type LocalFileOffset struct {
+	storePath       string
+	groupName       string
+	mqClient        *MqClient
+	offsetTable     map[MessageQueue]int64
+	offsetTableLock sync.RWMutex
+}
+
+type offsetWrapper struct {
+	offsetTable map[MessageQueue]int64
+}
+
+func (l *LocalFileOffset) load() error {
+	l.offsetTableLock.RLock()
+	defer l.offsetTableLock.RUnlock()
+	ow, err := l.readLocalOffset()
+	if err != nil {
+		return err
+	}
+	if ow != nil && len(ow.offsetTable) != 0 {
+		for k, v := range ow.offsetTable {
+			l.offsetTable[k] = v
+		}
+		for mq, offset := range ow.offsetTable {
+			log.Printf("load consumer's offset, %s %s %s", l.groupName, mq, offset)
+		}
+	}
+
+	return nil
+}
+
+func (l *LocalFileOffset) updateOffset(mq *MessageQueue, offset int64, increaseOnly bool) {
+	if mq != nil {
+		l.offsetTableLock.RLock()
+		defer l.offsetTableLock.RUnlock()
+		offsetOld, ok := l.offsetTable[*mq]
+		if !ok {
+			l.offsetTable[*mq] = offset
+		} else {
+			if increaseOnly {
+				if offset > offsetOld {
+					l.offsetTable[*mq] = offset
+				}
+			} else {
+				l.offsetTable[*mq] = offset
+			}
+		}
+	}
+}
+
+func (l *LocalFileOffset) readOffset(mq *MessageQueue, readType int) int64 {
+	if mq != nil {
+		switch readType {
+		case MemoryFirstThenStore:
+		case ReadFromMemory:
+			l.offsetTableLock.RLock()
+			offset, ok := l.offsetTable[*mq]
+			l.offsetTableLock.RUnlock()
+			if ok {
+				return offset
+			} else if readType == ReadFromMemory {
+				return -1
+			}
+		case ReadFromStore:
+			ow, err := l.readLocalOffset()
+			if err != nil {
+				fmt.Println(err)
+				return -1
+			}
+			if ow != nil && len(ow.offsetTable) == 0 {
+				offset, ok := ow.offsetTable[*mq]
+				if ok {
+					l.updateOffset(mq, offset, false)
+					return offset
+				}
+			}
+		}
+	}
+	return -1
+}
+
+func (l *LocalFileOffset) persistAll(mqs []MessageQueue) {
+	if len(mqs) == 0 {
+		return
+	}
+	ow := &offsetWrapper{offsetTable: make(map[MessageQueue]int64)}
+	for _, mq := range mqs {
+		offset, ok := l.offsetTable[mq]
+		if ok {
+			ow.offsetTable[mq] = offset
+		}
+	}
+	bs := make([]byte, 0)
+	err := json.Unmarshal(bs, ow)
+	if err != nil {
+		err := bytes2file(bs, l.storePath)
+		if err != nil {
+			log.Printf("persistAll consumer offset Exception, "+l.storePath, err)
+		}
+	}
+}
+
+func (l *LocalFileOffset) readLocalOffset() (*offsetWrapper, error) {
+	ow := &offsetWrapper{}
+	content, err := file2Bytes(l.storePath)
+	if err != nil {
+		log.Printf("Local local offset store file exception:%s", err)
+	}
+	if len(content) == 0 {
+		return l.readLocalOffsetBak()
+	} else {
+		err := json.Unmarshal(content, ow)
+		if err != nil {
+			return l.readLocalOffsetBak()
+		}
+	}
+
+	return ow, nil
+}
+
+func (l *LocalFileOffset) readLocalOffsetBak() (*offsetWrapper, error) {
+	ow := &offsetWrapper{}
+	content, err := file2Bytes(l.storePath)
+	if err != nil {
+		log.Printf("Load local offset store bak file exception:%s", err)
+	}
+	if len(content) == 0 {
+		return ow, nil
+	} else {
+		err := json.Unmarshal(content, ow)
+		if err != nil {
+			return l.readLocalOffsetBak()
+		}
+	}
+	return ow, nil
+}
+
+func file2Bytes(filepath string) ([]byte, error) {
+	if _, err := os.Stat(filepath); os.IsNotExist(err) {
+		return []byte{}, nil
+	}
+	return ioutil.ReadFile(filepath)
+
+}
+
+func bytes2file(bs []byte, filepath string) error {
+	tmpfile := filepath + ".tmp"
+	bakfile := filepath + ".bak"
+	prev, _ := file2Bytes(filepath)
+	if len(prev) == 0 {
+		err := ioutil.WriteFile(bakfile, prev, 0777)
+		if err != nil {
+			return err
+		}
+	}
+	err := ioutil.WriteFile(tmpfile, bs, 0777)
+	if err != nil {
+		return err
+	}
+	return os.Rename(tmpfile, filepath)
 }

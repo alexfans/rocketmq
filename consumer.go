@@ -41,6 +41,7 @@ type Config struct {
 type Consumer interface {
 	Start() error
 	Shutdown()
+	SetMessageModel(mm _MessageModel)
 	RegisterMessageListener(listener MessageListener)
 	Subscribe(topic string, subExpression string)
 	UnSubscribe(topic string)
