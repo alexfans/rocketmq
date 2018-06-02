@@ -36,12 +36,12 @@ type Config struct {
 	Namesrv      string
 	ClientIp     string
 	InstanceName string
+	messageModel _MessageModel
 }
 
 type Consumer interface {
 	Start() error
 	Shutdown()
-	SetMessageModel(mm _MessageModel)
 	RegisterMessageListener(listener MessageListener)
 	Subscribe(topic string, subExpression string)
 	UnSubscribe(topic string)
@@ -71,6 +71,7 @@ func NewDefaultConsumer(consumerGroup string, conf *Config) (Consumer, error) {
 		conf = &Config{
 			Namesrv:      os.Getenv("ROCKETMQ_NAMESVR"),
 			InstanceName: "DEFAULT",
+			messageModel: CLUSTERING,
 		}
 	}
 
@@ -85,10 +86,12 @@ func NewDefaultConsumer(consumerGroup string, conf *Config) (Consumer, error) {
 	rebalance.groupName = consumerGroup
 	rebalance.mqClient = mqClient
 
-	offsetStore := new(RemoteOffsetStore)
-	offsetStore.mqClient = mqClient
-	offsetStore.groupName = consumerGroup
-	offsetStore.offsetTable = make(map[MessageQueue]int64)
+	var offsetStore OffsetStore
+	if conf.messageModel == BROADCASTING {
+		offsetStore = NewRemoteOffsetStore(mqClient, consumerGroup, make(map[MessageQueue]int64))
+	} else {
+		offsetStore = NewRemoteOffsetStore(mqClient, consumerGroup, make(map[MessageQueue]int64))
+	}
 
 	pullMessageService := NewPullMessageService()
 
@@ -116,16 +119,13 @@ func NewDefaultConsumer(consumerGroup string, conf *Config) (Consumer, error) {
 	return consumer, nil
 }
 
-func (c *DefaultConsumer) SetMessageModel(mm _MessageModel) {
-	c.messageModel = mm
-}
-
 func (c *DefaultConsumer) Start() error {
 	c.mqClient.start()
 	return nil
 }
 
 func (c *DefaultConsumer) Shutdown() {
+	c.persistConsumerOffset()
 }
 
 func (c *DefaultConsumer) RegisterMessageListener(messageListener MessageListener) {
@@ -302,6 +302,15 @@ func (c *DefaultConsumer) subscriptions() []*SubscriptionData {
 
 func (c *DefaultConsumer) doRebalance() {
 	c.rebalance.doRebalance()
+}
+
+func (c *DefaultConsumer) persistConsumerOffset() {
+	offsetTable := c.offsetStore.OffsetTable()
+	mqs := make([]MessageQueue, 0, len(offsetTable))
+	for mq, _ := range offsetTable {
+		mqs = append(mqs, mq)
+	}
+	c.offsetStore.persistAll(mqs)
 }
 
 func (c *DefaultConsumer) isSubscribeTopicNeedUpdate(topic string) bool {

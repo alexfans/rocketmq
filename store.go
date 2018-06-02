@@ -1,12 +1,17 @@
 package rocketmq
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
+	"os/user"
+	"runtime"
+	"strings"
 	"sync"
 	"sync/atomic"
 )
@@ -25,6 +30,7 @@ type OffsetStore interface {
 	//persist(mq MessageQueue)
 	//removeOffset(mq MessageQueue)
 	//cloneOffsetTable(topic string) map[MessageQueue]int64
+	OffsetTable() map[MessageQueue]int64
 }
 
 type RemoteOffsetStore struct {
@@ -32,6 +38,14 @@ type RemoteOffsetStore struct {
 	mqClient        *MqClient
 	offsetTable     map[MessageQueue]int64
 	offsetTableLock sync.RWMutex
+}
+
+func NewRemoteOffsetStore(mqClient *MqClient, groupName string, offsetTable map[MessageQueue]int64) *RemoteOffsetStore {
+	return &RemoteOffsetStore{
+		groupName:   groupName,
+		mqClient:    mqClient,
+		offsetTable: offsetTable,
+	}
 }
 
 func (r *RemoteOffsetStore) load() error {
@@ -155,12 +169,65 @@ func (r *RemoteOffsetStore) updateOffset(mq *MessageQueue, offset int64, increas
 
 }
 
+func (r *RemoteOffsetStore) OffsetTable() map[MessageQueue]int64 {
+	return r.offsetTable
+}
+
 type LocalFileOffset struct {
 	storePath       string
 	groupName       string
 	mqClient        *MqClient
 	offsetTable     map[MessageQueue]int64
 	offsetTableLock sync.RWMutex
+}
+
+func NewLocalFileOffset(mqClient *MqClient, groupName string, offsetTable map[MessageQueue]int64) *LocalFileOffset {
+	offsetStore := &LocalFileOffset{
+		groupName:   groupName,
+		mqClient:    mqClient,
+		offsetTable: offsetTable,
+	}
+	offsetStore.storePath = localOffsetStoreDir() + "/" +
+		offsetStore.mqClient.clientId + "/" + offsetStore.groupName + "/" + "offset.json"
+
+	return offsetStore
+}
+
+func localOffsetStoreDir() string {
+	if dir := os.Getenv("ROCKETMQ_OFFSET"); dir != "" {
+		return dir
+	}
+	home, err := home()
+	if err != nil {
+		return "/tmp/.rocketmq_offsets"
+	}
+	return home + "/.rocketmq_offsets"
+}
+
+func home() (string, error) {
+	user, err := user.Current()
+	if err == nil {
+		return user.HomeDir, nil
+	}
+	if "windows" == runtime.GOOS {
+		panic("discard")
+	}
+	if home := os.Getenv("HOME"); home != "" {
+		return home, nil
+	}
+	var stdout bytes.Buffer
+	cmd := exec.Command("sh", "-c", "eval echo ~$USER")
+	cmd.Stdout = &stdout
+	if err := cmd.Run(); err != nil {
+		return "", err
+	}
+
+	result := strings.TrimSpace(stdout.String())
+	if result == "" {
+		return "", errors.New("blank output when reading home directory")
+	}
+
+	return result, nil
 }
 
 type offsetWrapper struct {
@@ -255,6 +322,10 @@ func (l *LocalFileOffset) persistAll(mqs []MessageQueue) {
 			log.Printf("persistAll consumer offset Exception, "+l.storePath, err)
 		}
 	}
+}
+
+func (l *LocalFileOffset) OffsetTable() map[MessageQueue]int64 {
+	return l.offsetTable
 }
 
 func (l *LocalFileOffset) readLocalOffset() (*offsetWrapper, error) {
