@@ -368,7 +368,7 @@ func (d *DefaultProducer) sendMessage(addr string, brokerName string, msg *Messa
 	currOpaque := atomic.AddInt32(&opaque, 1)
 	remotingCommand.Opaque = currOpaque
 	remotingCommand.Flag = 0
-	remotingCommand.Language = "JAVA"
+	remotingCommand.Language = "GOLANG"
 	remotingCommand.Version = 79
 	remotingCommand.ExtFields = requestHeader
 	remotingCommand.Body = msg.Body
