@@ -74,7 +74,7 @@ func (m *Message) PutProperty(name string, value string) {
 	m.properties[name] = value
 }
 func (m *Message) getDelayTimeLevel() int {
-	t = m.getProperty(MessageConst.PROPERTY_DELAY_TIME_LEVEL)
+	t := m.GetProperty(MessageConst.PropertyDelayTimeLevel)
 	if t != "" {
 		l, err := strconv.Atoi(t)
 		if err != nil {
@@ -86,8 +86,8 @@ func (m *Message) getDelayTimeLevel() int {
 	return 0
 }
 
-func (m *Message) SetDelayTimeLevel(int level) {
-	m.PutProperty(MessageConst.PROPERTY_DELAY_TIME_LEVEL, strconv.Itoa(level))
+func (m *Message) SetDelayTimeLevel(level int) {
+	m.PutProperty(MessageConst.PropertyDelayTimeLevel, strconv.Itoa(level))
 }
 
 func (m *Message) GetProperties() map[string]string {
