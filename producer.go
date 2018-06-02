@@ -266,7 +266,7 @@ func (d *DefaultProducer) sendKernel(msg *Message, mq *MessageQueue, communicati
 			sysFlag |= CompressedFlag
 		}
 
-		tranMsg := msg.Properties[MessageConst.PropertyTransactionPrepared]
+		tranMsg := msg.GetProperty(MessageConst.PropertyTransactionPrepared)
 		if b, err := strconv.ParseBool(tranMsg); tranMsg != "" && err == nil && b {
 			sysFlag |= TransactionPreparedType
 		}
@@ -284,17 +284,17 @@ func (d *DefaultProducer) sendKernel(msg *Message, mq *MessageQueue, communicati
 		requestHeader.DefaultTopicQueueNums = d.defaultTopicQueueNums
 		requestHeader.QueueId = mq.queueId
 		requestHeader.SysFlag = sysFlag
-		requestHeader.Properties = messageProperties2String(msg.Properties)
+		requestHeader.Properties = messageProperties2String(msg.GetProperties())
 		requestHeader.ReconsumeTimes = 0
 
 		if strings.HasPrefix(requestHeader.Topic, RetryGroupTopicPrefix) {
 			if MessageConst.PropertyReconsumeTime != "" {
 				requestHeader.ReconsumeTimes, _ = strconv.Atoi(MessageConst.PropertyReconsumeTime)
-				delete(msg.Properties, MessageConst.PropertyReconsumeTime)
+				msg.ClearProperty(MessageConst.PropertyReconsumeTime)
 			}
 			if MessageConst.PropertyMaxReconsumeTimes != "" {
 				requestHeader.MaxReconsumeTimes, _ = strconv.Atoi(MessageConst.PropertyMaxReconsumeTimes)
-				delete(msg.Properties, MessageConst.PropertyMaxReconsumeTimes)
+				msg.ClearProperty(MessageConst.PropertyMaxReconsumeTimes)
 			}
 		}
 
@@ -327,10 +327,10 @@ func (d *DefaultProducer) sendKernel(msg *Message, mq *MessageQueue, communicati
 				context)
 		}
 		if d.hasSendMessageHook() {
-			if msg.Properties[MessageConst.PropertyTransactionPrepared] == "true" {
+			if msg.GetProperty(MessageConst.PropertyTransactionPrepared) == "true" {
 				context.msgType = strconv.Itoa(TransMsgHalf)
 			}
-			if msg.Properties["__STARTDELIVERTIME"] != "" || msg.Properties[MessageConst.PropertyDelayTimeLevel] != "" {
+			if msg.GetProperty("__STARTDELIVERTIME") != "" || msg.GetProperty(MessageConst.PropertyDelayTimeLevel) != "" {
 				context.msgType = strconv.Itoa(DelayMsg)
 			}
 		}
@@ -389,7 +389,7 @@ func (d *DefaultProducer) sendMessage(addr string, brokerName string, msg *Messa
 
 func (d *DefaultProducer) sendMessageSync(addr string, brokerName string, msg *Message, timeoutMillis int64, remotingCommand *RemotingCommand) (sendResult *SendResult, err error) {
 	var response *RemotingCommand
-	fmt.Fprintln(os.Stderr, "msg:", msg.Topic, msg.Flag, string(msg.Body), msg.Properties)
+	fmt.Fprintln(os.Stderr, "msg:", msg.Topic, msg.Flag, string(msg.Body), msg.GetProperties())
 	if response, err = d.remotingClient.invokeSync(addr, remotingCommand, timeoutMillis); err != nil {
 		fmt.Fprintln(os.Stderr, "sendMessageSync err", err)
 	}

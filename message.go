@@ -32,7 +32,7 @@ const (
 type Message struct {
 	Topic      string
 	Flag       int32
-	Properties map[string]string
+	properties map[string]string
 	Body       []byte
 }
 
@@ -40,8 +40,96 @@ func NewMessage(topic string, body []byte) *Message {
 	return &Message{
 		Topic:      topic,
 		Body:       body,
-		Properties: make(map[string]string),
+		properties: make(map[string]string),
 	}
+}
+func (m *Message) SetTags(tags string) {
+	m.PutProperty(MessageConst.PropertyTags, tags)
+}
+
+func (m *Message) GetTags() string {
+	return m.GetProperty(MessageConst.PropertyKeys)
+}
+
+func (m *Message) SetKeys(keys string) {
+	m.PutProperty(MessageConst.PropertyKeys, keys)
+}
+
+func (m *Message) GetKeys() string {
+	return m.GetProperty(MessageConst.PropertyTags)
+}
+
+func (m *Message) SetBuyerId(buyerId string) {
+	m.PutProperty(MessageConst.PropertyBuyerId, buyerId)
+}
+
+func (m *Message) GetBuyerId() string {
+	return m.GetProperty(MessageConst.PropertyBuyerId)
+}
+
+func (m *Message) PutProperty(name string, value string) {
+	if m.properties == nil {
+		m.properties = make(map[string]string)
+	}
+	m.properties[name] = value
+}
+func (m *Message) getDelayTimeLevel() int {
+	t = m.getProperty(MessageConst.PROPERTY_DELAY_TIME_LEVEL)
+	if t != "" {
+		l, err := strconv.Atoi(t)
+		if err != nil {
+			return 0
+		}
+		return l
+	}
+
+	return 0
+}
+
+func (m *Message) SetDelayTimeLevel(int level) {
+	m.PutProperty(MessageConst.PROPERTY_DELAY_TIME_LEVEL, strconv.Itoa(level))
+}
+
+func (m *Message) GetProperties() map[string]string {
+	return m.properties
+}
+
+func (m *Message) SetProperties(properties map[string]string) {
+	m.properties = properties
+}
+
+func (m *Message) ClearProperty(name string) {
+	_, ok := m.properties[name]
+	if ok {
+		delete(m.properties, name)
+	}
+}
+
+func (m *Message) GetProperty(name string) string {
+	if m.properties == nil {
+		return ""
+	}
+	values, ok := m.properties[name]
+	if !ok {
+		return ""
+	}
+	return values
+}
+
+func (m *Message) PutUserProperty(name string, value string) error {
+	if _, ok := MessageConst.systemKeySet[name]; !ok {
+		return errors.New(fmt.Sprintf("The Property<%s> is used by system, input another please", name))
+	}
+	if name == "" || value == "" {
+		return errors.New("The name or value of property can not be null or blank string!")
+	}
+
+	m.PutProperty(name, value)
+	return nil
+}
+
+func (m *Message) GetUserProperty(name string) string {
+	return m.GetProperty(name)
 }
 
 type MessageExt struct {
@@ -142,7 +230,7 @@ func decodeMessage(data []byte) []*MessageExt {
 		msg.StoreTimestamp = storeTimestamp
 		msg.PreparedTransactionOffset = preparedTransactionOffset
 		msg.Body = body
-		msg.Properties = propertiesMap
+		msg.properties = propertiesMap
 
 		msgs = append(msgs, msg)
 	}

@@ -24,7 +24,7 @@ type messageConst struct {
 	PropertyConsumeStartTimeStamp     string
 
 	KeySeparator string
-	systemKeySet []string
+	systemKeySet map[string]struct{}
 }
 
 var MessageConst = &messageConst{
@@ -54,28 +54,29 @@ var MessageConst = &messageConst{
 }
 
 func init() {
-	var systemKeySet = make([]string, 0)
-	systemKeySet = append(systemKeySet, MessageConst.PropertyKeys)
-	systemKeySet = append(systemKeySet, MessageConst.PropertyTags)
-	systemKeySet = append(systemKeySet, MessageConst.PropertyWaitStoreMsgOk)
-	systemKeySet = append(systemKeySet, MessageConst.PropertyDelayTimeLevel)
-	systemKeySet = append(systemKeySet, MessageConst.PropertyRetryTopic)
-	systemKeySet = append(systemKeySet, MessageConst.PropertyRealTopic)
-	systemKeySet = append(systemKeySet, MessageConst.PropertyRealQueueId)
-	systemKeySet = append(systemKeySet, MessageConst.PropertyTransactionPrepared)
-	systemKeySet = append(systemKeySet, MessageConst.PropertyProducerGroup)
-	systemKeySet = append(systemKeySet, MessageConst.PropertyMinOffset)
-	systemKeySet = append(systemKeySet, MessageConst.PropertyMaxOffset)
-	systemKeySet = append(systemKeySet, MessageConst.PropertyBuyerId)
-	systemKeySet = append(systemKeySet, MessageConst.PropertyOriginMessageId)
-	systemKeySet = append(systemKeySet, MessageConst.PropertyTransferFlag)
-	systemKeySet = append(systemKeySet, MessageConst.PropertyCorrectionFlag)
-	systemKeySet = append(systemKeySet, MessageConst.PropertyMq2Flag)
-	systemKeySet = append(systemKeySet, MessageConst.PropertyReconsumeTime)
-	systemKeySet = append(systemKeySet, MessageConst.PropertyMsgRegion)
-	systemKeySet = append(systemKeySet, MessageConst.PropertyUniqClientMessageIdKeyidx)
-	systemKeySet = append(systemKeySet, MessageConst.PropertyMaxReconsumeTimes)
-	systemKeySet = append(systemKeySet, MessageConst.PropertyConsumeStartTimeStamp)
+	var systemKeySet = make(map[string]struct{}, 20)
+	systemKeySet[MessageConst.PropertyKeys] = struct{}{}
+	systemKeySet[MessageConst.PropertyTags] = struct{}{}
+	systemKeySet[MessageConst.PropertyWaitStoreMsgOk] = struct{}{}
+	systemKeySet[MessageConst.PropertyDelayTimeLevel] = struct{}{}
+	systemKeySet[MessageConst.PropertyRetryTopic] = struct{}{}
+	systemKeySet[MessageConst.PropertyRealTopic] = struct{}{}
+	systemKeySet[MessageConst.PropertyRealTopic] = struct{}{}
+	systemKeySet[MessageConst.PropertyRealQueueId] = struct{}{}
+	systemKeySet[MessageConst.PropertyTransactionPrepared] = struct{}{}
+	systemKeySet[MessageConst.PropertyProducerGroup] = struct{}{}
+	systemKeySet[MessageConst.PropertyMinOffset] = struct{}{}
+	systemKeySet[MessageConst.PropertyMaxOffset] = struct{}{}
+	systemKeySet[MessageConst.PropertyBuyerId] = struct{}{}
+	systemKeySet[MessageConst.PropertyOriginMessageId] = struct{}{}
+	systemKeySet[MessageConst.PropertyTransferFlag] = struct{}{}
+	systemKeySet[MessageConst.PropertyCorrectionFlag] = struct{}{}
+	systemKeySet[MessageConst.PropertyMq2Flag] = struct{}{}
+	systemKeySet[MessageConst.PropertyReconsumeTime] = struct{}{}
+	systemKeySet[MessageConst.PropertyMsgRegion] = struct{}{}
+	systemKeySet[MessageConst.PropertyUniqClientMessageIdKeyidx] = struct{}{}
+	systemKeySet[MessageConst.PropertyMaxReconsumeTimes] = struct{}{}
+	systemKeySet[MessageConst.PropertyConsumeStartTimeStamp] = struct{}{}
 
 	MessageConst.systemKeySet = systemKeySet
 }

@@ -38,13 +38,13 @@ func hashCode() []byte {
 }
 
 func (m messageClientIDSetter) setUniqID(msg *Message) {
-	if msg.Properties[MessageConst.PropertyUniqClientMessageIdKeyidx] == "" {
-		msg.Properties[MessageConst.PropertyUniqClientMessageIdKeyidx] = m.createUniqID()
+	if msg.GetProperty(MessageConst.PropertyUniqClientMessageIdKeyidx) == "" {
+		msg.PutProperty(MessageConst.PropertyUniqClientMessageIdKeyidx, m.createUniqID())
 	}
 }
 
 func (m messageClientIDSetter) getUniqID(msg *Message) string {
-	return msg.Properties[MessageConst.PropertyUniqClientMessageIdKeyidx]
+	return msg.GetProperty(MessageConst.PropertyUniqClientMessageIdKeyidx)
 }
 
 func (m messageClientIDSetter) createUniqID() string {

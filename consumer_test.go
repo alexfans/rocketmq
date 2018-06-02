@@ -23,7 +23,7 @@ func TestConsume(t *testing.T) {
 	consumer.RegisterMessageListener(
 		func(msgs []*MessageExt) error {
 			for i, msg := range msgs {
-				t.Log("msg", i, msg.Topic, msg.Flag, msg.Properties, string(msg.Body))
+				t.Log("msg", i, msg.Topic, msg.Flag, msg.properties, string(msg.Body))
 			}
 			t.Log("Consume success!")
 			return nil
